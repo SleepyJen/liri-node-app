@@ -10,17 +10,24 @@ require("dotenv").config();
 
 var keys = require('./keys');
 var moment = require('moment');
+var spotify = new Spotify(keys.spotify);
+
 var input = process.argv[2];
-var info = '';
+var info = process.argv[3];
 var ok = false;
 
 if (!input) {
     mainMenu();
 } else {
-    for (let i = 3; i < process.argv.length; i++) {
-        (i === 3) ? info += process.argv[i] : info = info + " " + process.argv[i];
+    if (!info) {
+        info = '';
+        main();
+    } else {
+        for (let i = 4; i < process.argv.length; i++) {
+            (i === 4) ? info = process.argv[i] : info = info + " " + process.argv[i];
+        }
+        main();
     }
-    main();
 }
 
 function mainMenu() {
@@ -62,8 +69,6 @@ function getInfo(search) {
     });
 }
 
-var spotify = new Spotify(keys.spotify);
-
 function concertThis(artist) {
     const urlBand = "https://rest.bandsintown.com/artists/" + artist + `/events?app_id=${process.env["BAND_ID"]}`;
     ax.get(urlBand).then(result => {
@@ -86,10 +91,10 @@ function spotifyIt(song) {
     if (song === "") {
         song = "The Sign";
     }
+
     spotify
         .search({ type: 'track', query: song })
         .then(function (response) {
-            //console.log(response.tracks.items[0].artists[0].name);
             let data = response.tracks.items
             for (let i = 0; i < data.length; i++) {
                 let string = "Artist: " + data[i].artists[0].name + "\nname: " + data[i].album.name + "\nPreview Link: " + data[i].preview_url + "\nAlbum name: " + data[i].album.name + "\n";
@@ -155,6 +160,7 @@ function main() {
         }
     } else if (input === 'spotify-this-song') {
         if (!info) {
+            console.log('this was hit')
             spotifyIt("");
         } else {
             spotifyIt(info);
