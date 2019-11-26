@@ -5,7 +5,7 @@ require("dotenv").config();
 
 var keys = require('./keys');
 var moment = require('moment');
-//var input = process.argv[2];
+var input = process.argv[2];
 
 var spotify = new Spotify(keys.spotify);
 
@@ -38,7 +38,14 @@ function spotifyIt(song) {
         });
 }
 
-
+function movieThis(movie) {
+    const urlMovie = `http://www.omdbapi.com/?apikey=${process.env["MOVIE_ID"]}&t=${movie}`;
+    ax.get(urlMovie).then(result => {
+        const data = result.data;
+        console.log(`\n*Title: ${data.Title} \n*Release Year: ${data.Year} \n*IMDB Rating: ${data.Ratings[0].Value} \n*Rotten Tomatoes Rating: ${data.Ratings[1].Value}`);
+        console.log(`*Produced in: ${data.Country} \n*Language: ${data.Language} \n*Plot: ${data.Plot}\n*Actors: ${data.Actors}`);
+    });
+}
 
 function main() {
     if (input === 'concert-this') {
@@ -51,6 +58,12 @@ function main() {
             let song = process.argv[3];
             spotifyIt(song);
         }
-
+    } else if (input === 'movie-this') {
+        if (!process.argv[3]) {
+            movieThis("");;
+        } else {
+            let movie = process.argv[3];
+            movieThis(movie);;
+        }
     }
 }
