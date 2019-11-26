@@ -1,13 +1,66 @@
 const ax = require('axios');
 var Spotify = require('node-spotify-api');
 var fs = require('fs');
+var inq = require('inquirer');
+
 const file = 'random.txt';
+const appendFile = 'log.txt';
 
 require("dotenv").config();
 
 var keys = require('./keys');
 var moment = require('moment');
 var input = process.argv[2];
+var info = '';
+var ok = false;
+
+if (!input) {
+    mainMenu();
+} else {
+    for (let i = 3; i < process.argv.length; i++) {
+        (i === 3) ? info += process.argv[i] : info = info + " " + process.argv[i];
+    }
+    main();
+}
+
+function mainMenu() {
+    ok = true;
+    inq.prompt({
+        type: 'list',
+        message: 'What would you like to do?',
+        choices: ['concert-this', 'spotify-this-song', 'movie-this', 'do-what-it-say', 'Quit'],
+        name: 'Choice'
+    }).then(result => {
+        const chosen = result.Choice;
+        if (chosen === 'Quit') {
+            process.exit();
+        } else if (chosen === 'concert-this') {
+            input = 'concert-this';
+            getInfo('Artist');
+        } else if (chosen === 'spotify-this-song') {
+            input = 'spotify-this-song';
+            getInfo('Song');
+        } else if (chosen === 'movie-this') {
+            input = 'movie-this';
+            getInfo('Movie');
+        } else {
+            input = 'do-what-it-say';
+            main();
+        }
+    });
+
+}
+
+function getInfo(search) {
+    inq.prompt({
+        type: 'input',
+        message: `Please type in a ${search}`,
+        name: 'in'
+    }).then(result => {
+        info = result.in;
+        main();
+    });
+}
 
 var spotify = new Spotify(keys.spotify);
 
@@ -16,9 +69,16 @@ function concertThis(artist) {
     ax.get(urlBand).then(result => {
         const venue = result.data[0].venue;
         const time = result.data[0].datetime;
-
-        console.log("\nVenue name: " + venue.name + "\nCountry: " + venue.country + "\nCity: " + venue.city + ", " + venue.region);
-        console.log("Date: " + moment(time).format('LLLL') + "\n");
+        let string1 = `\nArtist: ${artist}\nVenue name: ` + venue.name + "\nCountry: " + venue.country + "\nCity: " + venue.city + ", " + venue.region + "\nDate: " + moment(time).format('LLLL') + "\n";
+        fs.appendFile(appendFile, string1, err => {
+            if (err) throw err;
+        });
+        console.log(string1);
+        if (ok) {
+            mainMenu();
+        }
+    }).catch(err => {
+        throw err;
     });
 }
 
@@ -32,7 +92,14 @@ function spotifyIt(song) {
             //console.log(response.tracks.items[0].artists[0].name);
             let data = response.tracks.items
             for (let i = 0; i < data.length; i++) {
-                console.log("Artist: " + data[i].artists[0].name + "\nname: " + data[i].album.name + "\nPreview Link: " + data[i].preview_url + "\nAlbum name: " + data[i].album.name + "\n");
+                let string = "Artist: " + data[i].artists[0].name + "\nname: " + data[i].album.name + "\nPreview Link: " + data[i].preview_url + "\nAlbum name: " + data[i].album.name + "\n";
+                console.log(string);
+                fs.appendFile(appendFile, "\n" + string, err => {
+                    if (err) throw err;
+                });
+            }
+            if (ok) {
+                mainMenu();
             }
         })
         .catch(function (err) {
@@ -41,18 +108,51 @@ function spotifyIt(song) {
 }
 
 function movieThis(movie) {
+    if (movie === "") {
+        movie = "Mr. Nobody";
+    }
     const urlMovie = `http://www.omdbapi.com/?apikey=${process.env["MOVIE_ID"]}&t=${movie}`;
     ax.get(urlMovie).then(result => {
         const data = result.data;
-        console.log(`\n*Title: ${data.Title} \n*Release Year: ${data.Year} \n*IMDB Rating: ${data.Ratings[0].Value} \n*Rotten Tomatoes Rating: ${data.Ratings[1].Value}`);
-        console.log(`*Produced in: ${data.Country} \n*Language: ${data.Language} \n*Plot: ${data.Plot}\n*Actors: ${data.Actors}`);
+        console.log(data.Ratings);
+        let IMDBratings;
+        let rottenTomatoes;
+        if (data.Ratings.length > 1) {
+            IMDBratings = data.Ratings[0].Value;
+            rottenTomatoes = data.Ratings[1].Value;
+        } else {
+            if (data.Ratings.length === 0) {
+                IMDBratings = "N/A";
+                rottenTomatoes = "N/A";
+            } else {
+                if (data.Ratings[0].Source === 'Internet Movie Database') {
+                    IMDBratings = data.Ratings[0].Value;
+                    rottenTomatoes = "N/A";
+                } else {
+                    IMDBratings = "N/A";
+                    rottenTomatoes = data.Ratings[0].Value;
+                }
+            }
+        }
+        let string = `\n*Title: ${data.Title} \n*Release Year: ${data.Year} \n*IMDB Rating: ${IMDBratings} \n*Rotten Tomatoes Rating: ${rottenTomatoes}` +
+            `\n*Produced in: ${data.Country} \n*Language: ${data.Language} \n*Plot: ${data.Plot}\n*Actors: ${data.Actors}`;
+        console.log(string);
+        fs.appendFile(appendFile, string, err => {
+            if (err) throw err;
+        });
+        if (ok) {
+            mainMenu();
+        }
     });
 }
-var info = process.argv[3];
 
 function main() {
     if (input === 'concert-this') {
-        concertThis(info);
+        if (!info) {
+            concertThis('Celine Dion');
+        } else {
+            concertThis(info);
+        }
     } else if (input === 'spotify-this-song') {
         if (!info) {
             spotifyIt("");
@@ -63,7 +163,7 @@ function main() {
         if (!info) {
             movieThis("");;
         } else {
-            movieThis(info);;
+            movieThis(info);
         }
     } else {
         fs.readFile(file, (err, data) => {
@@ -75,4 +175,3 @@ function main() {
         });
     }
 }
-main();
