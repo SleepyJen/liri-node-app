@@ -1,5 +1,7 @@
 const ax = require('axios');
 var Spotify = require('node-spotify-api');
+var fs = require('fs');
+const file = 'random.txt';
 
 require("dotenv").config();
 
@@ -46,24 +48,31 @@ function movieThis(movie) {
         console.log(`*Produced in: ${data.Country} \n*Language: ${data.Language} \n*Plot: ${data.Plot}\n*Actors: ${data.Actors}`);
     });
 }
+var info = process.argv[3];
 
 function main() {
     if (input === 'concert-this') {
-        let name = process.argv[3];
-        concertThis(name);
+        concertThis(info);
     } else if (input === 'spotify-this-song') {
-        if (!process.argv[3]) {
+        if (!info) {
             spotifyIt("");
         } else {
-            let song = process.argv[3];
-            spotifyIt(song);
+            spotifyIt(info);
         }
     } else if (input === 'movie-this') {
-        if (!process.argv[3]) {
+        if (!info) {
             movieThis("");;
         } else {
-            let movie = process.argv[3];
-            movieThis(movie);;
+            movieThis(info);;
         }
+    } else {
+        fs.readFile(file, (err, data) => {
+            if (err) throw err;
+            let arr = data.toString().split(',');
+            input = arr[0];
+            info = arr[1];
+            main();
+        });
     }
 }
+main();
