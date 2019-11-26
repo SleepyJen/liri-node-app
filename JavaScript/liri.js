@@ -1,11 +1,11 @@
 const ax = require('axios');
-const Spotify = require('node-spotify-api');
+var Spotify = require('node-spotify-api');
 
 require("dotenv").config();
 
-var keys = require('./keys.js');
+var keys = require('./keys');
 var moment = require('moment');
-var input = process.argv[2];
+//var input = process.argv[2];
 
 var spotify = new Spotify(keys.spotify);
 
@@ -21,18 +21,36 @@ function concertThis(artist) {
 }
 
 function spotifyIt(song) {
-    spotify.search({ type: 'track', query: 'All the Small Things' }, function (err, data) {
-        if (err) {
-            return console.log('Error occurred: ' + err);
-        }
-
-        console.log(data);
-    });
+    if (song === "") {
+        song = "The Sign";
+    }
+    spotify
+        .search({ type: 'track', query: song })
+        .then(function (response) {
+            //console.log(response.tracks.items[0].artists[0].name);
+            let data = response.tracks.items
+            for (let i = 0; i < data.length; i++) {
+                console.log("Artist: " + data[i].artists[0].name + "\nname: " + data[i].album.name + "\nPreview Link: " + data[i].preview_url + "\nAlbum name: " + data[i].album.name + "\n");
+            }
+        })
+        .catch(function (err) {
+            console.log(err);
+        });
 }
+
+
 
 function main() {
     if (input === 'concert-this') {
         let name = process.argv[3];
         concertThis(name);
+    } else if (input === 'spotify-this-song') {
+        if (!process.argv[3]) {
+            spotifyIt("");
+        } else {
+            let song = process.argv[3];
+            spotifyIt(song);
+        }
+
     }
 }
